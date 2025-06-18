@@ -17,6 +17,11 @@ app.use('/api/tasks', taskRoutes);
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+const teamRoutes = require('./routes/teamRoutes');
+app.use('/api/team', teamRoutes);
+
+const inviteRoutes = require('./routes/inviteRoutes');
+app.use('/api/invites', inviteRoutes);
 
 // Подключение к MongoDB
 mongoose.connect(process.env.MONGO_URI, {

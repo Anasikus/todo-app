@@ -10,7 +10,7 @@ module.exports = (req, res, next) => {
   try {
     const token = auth.split(' ')[1];
     const decoded = jwt.verify(token, SECRET);
-    req.user = decoded;
+    req.user = { userId: decoded.userId };
     next();
   } catch (err) {
     res.status(401).json({ error: 'Неверный токен' });

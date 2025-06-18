@@ -2,14 +2,26 @@ import { useEffect, useState } from 'react';
 import TaskForm from '../components/TaskForm';
 import TaskList from '../components/TaskList';
 import { fetchTasks, addTask, deleteTask, updateTask } from '../api/tasks';
+import { fetchMyTeam } from '../api/team';
+import CreateTeamForm from '../components/CreateTeamForm';
+import InviteForm from '../components/InviteForm';
+import InviteList from '../components/InviteList';
 
 export default function TasksPage({ user, onLogout }) {
   const [tasks, setTasks] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [team, setTeam] = useState(null);
 
   useEffect(() => {
     fetchTasks().then(setTasks);
+
+    fetchMyTeam()
+      .then(setTeam)
+      .catch((err) => {
+        console.error('Ошибка загрузки команды:', err.message);
+        setTeam(null);
+      });
   }, []);
 
   const handleAdd = async (text) => {
@@ -52,11 +64,30 @@ export default function TasksPage({ user, onLogout }) {
 
   return (
     <div className="container">
-        <div style={{display: 'flex', justifyContent: 'space-between'}}>
-            <h1>Мои задачи ({user?.name})</h1>
-            <button onClick={onLogout} style={{ float: 'right' }}>Выйти</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <h1>Мои задачи ({user?.name})</h1>
+        <button onClick={onLogout}>Выйти</button>
+      </div>
+
+      <InviteList onAccepted={() => {
+        fetchMyTeam().then(setTeam).catch(() => setTeam(null));
+      }} />
+
+      {team ? (
+        <div style={{ background: '#f1f1f1', padding: '12px', borderRadius: '6px', marginBottom: '20px' }}>
+          <h3 style={{ margin: 0 }}>Команда: {team.name}</h3>
+          <div style={{ fontSize: '14px', color: '#555' }}>
+            Участники: {team?.members?.map((m) => m.name).join(', ') || 'Нет участников'}
+          </div>
+          <InviteForm />
         </div>
-    
+      ) : (
+        <div style={{ background: '#fff3cd', padding: '10px', borderRadius: '6px', marginBottom: '20px' }}>
+          <strong>Вы не состоите в команде.</strong>
+          <CreateTeamForm onTeamCreated={setTeam} />
+        </div>
+      )}
+
       <TaskForm onAdd={handleAdd} />
 
       <div className="filters">

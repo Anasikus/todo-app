@@ -14,9 +14,22 @@ router.get('/', async (req, res) => {
 // Добавить новую задачу
 router.post('/', async (req, res) => {
   try {
-    const task = new Task(req.body);
+    const User = require('../models/User');
+    const user = await User.findById(req.user.userId);
+
+    if (!user || !user.team) {
+      return res.status(400).json({ error: 'У пользователя нет команды' });
+    }
+
+    const task = new Task({
+      text: req.body.text,
+      assignedTo: user._id,
+      team: user.team
+    });
+
     await task.save();
-    res.status(201).json(task);
+    const fullTask = await Task.findById(task._id).populate('assignedTo', 'name email');
+    res.status(201).json(fullTask);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
