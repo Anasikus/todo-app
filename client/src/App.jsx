@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 
 import LoginPage from './components/LoginForm';
 import RegisterPage from './components/RegisterForm';
-import TasksPage from './pages/TasksPage';
+import Header from './components/Header';
+import TaskPage from './pages/TaskPage';
+import TeamPage from './pages/TeamPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -28,19 +30,30 @@ export default function App() {
 
   return (
     <Router>
+      {token && <Header onLogout={handleLogout} />}
       <Routes>
         <Route path="/" element={<Navigate to={token ? "/tasks" : "/login"} />} />
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
         <Route path="/register" element={<RegisterPage />} />
+
         <Route
           path="/tasks"
           element={
             <ProtectedRoute token={token}>
-              <TasksPage user={user} onLogout={handleLogout} />
+              <TaskPage user={user} />
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<h2>404 — Страница не найдена</h2>} />
+        <Route
+          path="/team"
+          element={
+            <ProtectedRoute token={token}>
+              <TeamPage user={user} />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<h2 style={{ padding: '20px' }}>404 — Страница не найдена</h2>} />
       </Routes>
     </Router>
   );

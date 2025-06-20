@@ -16,8 +16,18 @@ export async function fetchTasks({ from, to } = {}) {
   const res = await fetch(`${API_URL}?${params.toString()}`, {
     headers: getHeaders()
   });
-  return await res.json();
+
+  const data = await res.json();
+
+  // если сервер вернул ошибку, возвращаем пустой массив
+  if (!res.ok || !Array.isArray(data)) {
+    console.error('Ошибка при загрузке задач:', data?.error || res.statusText);
+    return []; // ← предотвращает .filter is not a function
+  }
+
+  return data;
 }
+
 
 export async function addTask(text) {
   const res = await fetch(API_URL, {

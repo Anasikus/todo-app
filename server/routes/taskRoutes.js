@@ -9,7 +9,15 @@ router.use(auth); // применяем ко всем маршрутам
 router.get('/', async (req, res) => {
   try {
     const { from, to } = req.query;
-    const filter = {};
+
+    const user = await require('../models/User').findById(req.user.userId);
+    if (!user || !user.team) {
+      return res.status(403).json({ error: 'Вы не состоите в команде' });
+    }
+
+    const filter = {
+      team: user.team // ← фильтрация по команде
+    };
 
     if (from || to) {
       filter.createdAt = {};
@@ -17,12 +25,16 @@ router.get('/', async (req, res) => {
       if (to) filter.createdAt.$lte = new Date(to);
     }
 
-    const tasks = await Task.find(filter).sort({ createdAt: -1 });
+    const tasks = await Task.find(filter)
+      .sort({ createdAt: -1 })
+      .populate('assignedTo', 'name email');
+
     res.json(tasks);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Добавить новую задачу
 router.post('/', async (req, res) => {
