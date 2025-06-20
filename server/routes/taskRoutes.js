@@ -7,8 +7,21 @@ router.use(auth); // применяем ко всем маршрутам
 
 // Получить все задачи
 router.get('/', async (req, res) => {
-  const tasks = await Task.find().sort({ createdAt: -1 });
-  res.json(tasks);
+  try {
+    const { from, to } = req.query;
+    const filter = {};
+
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) filter.createdAt.$gte = new Date(from);
+      if (to) filter.createdAt.$lte = new Date(to);
+    }
+
+    const tasks = await Task.find(filter).sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Добавить новую задачу

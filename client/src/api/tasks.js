@@ -8,8 +8,14 @@ function getHeaders() {
   };
 }
 
-export async function fetchTasks() {
-  const res = await fetch(API_URL, { headers: getHeaders() });
+export async function fetchTasks({ from, to } = {}) {
+  const params = new URLSearchParams();
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
+
+  const res = await fetch(`${API_URL}?${params.toString()}`, {
+    headers: getHeaders()
+  });
   return await res.json();
 }
 

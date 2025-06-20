@@ -12,6 +12,13 @@ export default function TasksPage({ user, onLogout }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [team, setTeam] = useState(null);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  const handleDateFilter = async () => {
+    const tasks = await fetchTasks({ from: fromDate, to: toDate });
+    setTasks(tasks);
+  };
 
   useEffect(() => {
     fetchTasks().then(setTasks);
@@ -95,6 +102,17 @@ export default function TasksPage({ user, onLogout }) {
         <button onClick={() => setFilter('active')} className={filter === 'active' ? 'active' : ''}>Активные</button>
         <button onClick={() => setFilter('completed')} className={filter === 'completed' ? 'active' : ''}>Выполненные</button>
       </div>
+
+      <div style={{ margin: '10px 0' }}>
+        <label>С даты: </label>
+        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+
+        <label style={{ marginLeft: '10px' }}>По дату: </label>
+        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+
+        <button onClick={handleDateFilter} style={{ marginLeft: '10px' }}>Применить</button>
+      </div>
+
 
       <input
         type="text"
