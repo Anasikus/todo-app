@@ -28,15 +28,18 @@ export async function fetchTasks({ from, to } = {}) {
   return data;
 }
 
-
-export async function addTask(text) {
+export async function addTask({ text, deadline, labels, assignedTo }) {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ text })
+    body: JSON.stringify({ text, deadline, labels, assignedTo }) // именно labels!
   });
-  return await res.json();
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Ошибка при создании задачи');
+  return data;
 }
+
 
 export async function deleteTask(id) {
   await fetch(`${API_URL}/${id}`, {

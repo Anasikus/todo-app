@@ -6,7 +6,7 @@ export default function Header({ onLogout }) {
     <header className="app-header">
       <div className="header-container">
         <div className="logo">
-          <Link to="/tasks">TaskFlow</Link>
+          <Link to="/tasks">Todo</Link>
         </div>
         <nav className="nav-links">
           <Link to="/tasks">Задачи</Link>

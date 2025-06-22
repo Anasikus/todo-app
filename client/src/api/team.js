@@ -70,3 +70,54 @@ export async function fetchAvailableTeams() {
 
   return await res.json();
 }
+
+export async function removeMember(userId) {
+  const res = await fetch(`${API_URL}/member/${userId}`, {
+    method: 'DELETE', headers: getHeaders()
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data;
+}
+
+export async function renameTeam(name) {
+  const res = await fetch(`${API_URL}/rename`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ name })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data;
+}
+
+export async function approveRequest(userId) {
+  const res = await fetch(`${API_URL}/requests/${userId}/approve`, {
+    method: 'POST',
+    headers: getHeaders()
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data;
+}
+
+export async function rejectRequest(userId) {
+  const res = await fetch(`${API_URL}/requests/${userId}/reject`, {
+    method: 'POST',
+    headers: getHeaders()
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data;
+}
+
+export const leaveTeam = async () => {
+  const res = await fetch('http://localhost:4000/api/team/leave', {
+    method: 'POST',
+    headers: getHeaders()
+  });
+
+  const data = await res.json(); // ✅ корректный способ получить JSON
+  if (!res.ok) throw new Error(data.error || 'Ошибка при выходе из команды');
+  return data;
+};
