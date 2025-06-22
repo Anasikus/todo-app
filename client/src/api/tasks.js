@@ -8,19 +8,38 @@ function getHeaders() {
   };
 }
 
-export async function fetchTasks() {
-  const res = await fetch(API_URL, { headers: getHeaders() });
-  return await res.json();
+export async function fetchTasks({ from, to } = {}) {
+  const params = new URLSearchParams();
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
+
+  const res = await fetch(`${API_URL}?${params.toString()}`, {
+    headers: getHeaders()
+  });
+
+  const data = await res.json();
+
+  // если сервер вернул ошибку, возвращаем пустой массив
+  if (!res.ok || !Array.isArray(data)) {
+    console.error('Ошибка при загрузке задач:', data?.error || res.statusText);
+    return []; // ← предотвращает .filter is not a function
+  }
+
+  return data;
 }
 
-export async function addTask(text) {
+export async function addTask({ text, deadline, labels, assignedTo }) {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ text })
+    body: JSON.stringify({ text, deadline, labels, assignedTo }) // именно labels!
   });
-  return await res.json();
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Ошибка при создании задачи');
+  return data;
 }
+
 
 export async function deleteTask(id) {
   await fetch(`${API_URL}/${id}`, {
