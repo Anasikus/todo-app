@@ -102,5 +102,29 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Добавление комментария
+router.post('/:taskId/comments', async (req, res) => {
+  const { taskId } = req.params;
+  const { text, author } = req.body;
+
+  try {
+    const task = await Task.findById(taskId);
+    if (!task) return res.status(404).json({ error: 'Задача не найдена' });
+
+    const comment = {
+      text,
+      author,
+      createdAt: new Date()
+    };
+
+    task.comments.push(comment);
+    await task.save();
+
+    res.status(201).json(comment);
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка при добавлении комментария' });
+  }
+});
+
 
 module.exports = router;

@@ -40,7 +40,6 @@ export async function addTask({ text, deadline, labels, assignedTo }) {
   return data;
 }
 
-
 export async function deleteTask(id) {
   await fetch(`${API_URL}/${id}`, {
     method: 'DELETE',
@@ -55,4 +54,14 @@ export async function updateTask(id, updates) {
     body: JSON.stringify(updates)
   });
   return await res.json();
+}
+
+export async function addComment(taskId, comment) {
+  const res = await fetch(`/api/tasks/${taskId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(comment)
+  });
+  if (!res.ok) throw new Error('Ошибка при добавлении комментария');
+  return res.json();
 }
