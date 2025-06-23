@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
+import { FiMessageSquare } from 'react-icons/fi';
 import { fetchMyTeam } from '../api/team';
 import { fetchTasks, addTask, deleteTask, updateTask } from '../api/tasks';
+import { fetchComments } from '../api/comments'; // оставляем только нужную функцию
+import CommentModal from '../components/CommentModal';
 import '../styles/main.css';
 
 export default function TaskPage({ user: propUser }) {
   const [user, setUser] = useState(propUser || null);
   const [tasks, setTasks] = useState([]);
+  const [commentsByTaskId, setCommentsByTaskId] = useState({});
+  const [activeTaskForComments, setActiveTaskForComments] = useState(null);
+
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -20,7 +26,6 @@ export default function TaskPage({ user: propUser }) {
   const isOwner = team?.owner === user?.id || team?.owner === user?._id;
 
   useEffect(() => {
-    // Загрузка пользователя из localStorage, если не пришёл через props
     if (!propUser) {
       const storedUser = JSON.parse(localStorage.getItem('user'));
       if (storedUser) setUser(storedUser);
@@ -28,7 +33,15 @@ export default function TaskPage({ user: propUser }) {
   }, [propUser]);
 
   useEffect(() => {
-    fetchTasks().then(setTasks);
+    fetchTasks().then(async (tasks) => {
+      setTasks(tasks);
+      const allComments = {};
+      for (const task of tasks) {
+        allComments[task._id] = await fetchComments(task._id);
+      }
+      setCommentsByTaskId(allComments);
+    });
+
     fetchMyTeam().then(team => {
       setTeam(team);
       setTeamMembers(team?.members || []);
@@ -101,12 +114,7 @@ export default function TaskPage({ user: propUser }) {
             ))}
           </select>
         ) : (
-          <input
-            type="text"
-            value={user?.name || ''}
-            disabled
-            style={{ backgroundColor: '#eee', cursor: 'not-allowed' }}
-          />
+          <input type="text" value={user?.name || ''} disabled />
         )}
         <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
         <input placeholder="Метки через запятую" value={tags} onChange={e => setTags(e.target.value)} />
@@ -137,11 +145,12 @@ export default function TaskPage({ user: propUser }) {
 
       <ul className="task-list">
         {getFilteredTasks().map((task) => {
-          const authorId = task.author?._id?.toString();
-          const assignedId = task.assignedTo?._id?.toString();
-          const userId = user?._id?.toString() || user?.id?.toString();
+          const userId = user?._id || user?.id;
+          const taskAuthorId = task.author?._id || task.author;
+          const taskAssignedToId = task.assignedTo?._id || task.assignedTo;
 
-          const canDelete = isOwner || (userId && authorId === userId && assignedId === userId);
+          const canDelete =
+            isOwner || (String(taskAuthorId) === String(userId) && String(taskAssignedToId) === String(userId));
 
           return (
             <li key={task._id} className="task-item">
@@ -160,13 +169,31 @@ export default function TaskPage({ user: propUser }) {
                   <div>Метки: {task.labels?.join(', ') || '—'}</div>
                 </div>
               </div>
-              {canDelete && (
-                <button onClick={() => handleDelete(task._id)}>Удалить</button>
-              )}
+
+              <div className="task-actions">
+                <button
+                  className="icon-button"
+                  title="Комментарии"
+                  onClick={() => setActiveTaskForComments(task)}
+                >
+                  <FiMessageSquare />
+                </button>
+                {canDelete && (
+                  <button onClick={() => handleDelete(task._id)}>Удалить</button>
+                )}
+              </div>
             </li>
           );
         })}
       </ul>
+
+      {activeTaskForComments && user && (
+        <CommentModal
+          task={activeTaskForComments}
+          user={user}
+          onClose={() => setActiveTaskForComments(null)}
+        />
+      )}
     </div>
   );
 }

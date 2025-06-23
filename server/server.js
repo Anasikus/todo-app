@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 
@@ -9,21 +10,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-//Задачи
-const taskRoutes = require('./routes/taskRoutes');
-app.use('/api/tasks', taskRoutes);
+// Статические файлы
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-//Регистрация | Авторизация
-const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes);
+// Роуты
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/team', require('./routes/teamRoutes'));
+app.use('/api/invites', require('./routes/inviteRoutes'));
+app.use('/api/tasks', require('./routes/taskRoutes'));
+app.use('/api/tasks/:taskId/comments', require('./routes/commentsRoutes')); // динамический параметр
 
-const teamRoutes = require('./routes/teamRoutes');
-app.use('/api/team', teamRoutes);
-
-const inviteRoutes = require('./routes/inviteRoutes');
-app.use('/api/invites', inviteRoutes);
-
-// Подключение к MongoDB
+// MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -31,12 +28,7 @@ mongoose.connect(process.env.MONGO_URI, {
 .then(() => console.log('✅ MongoDB connected!'))
 .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// Пример маршрута
-app.get('/', (req, res) => {
-  res.send('Сервер работает!');
-});
-
-// Запуск сервера
+// Старт сервера
 const PORT = 4000;
 app.listen(PORT, () => {
   console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
