@@ -99,37 +99,6 @@ export default function TaskPage({ user: propUser }) {
     return filtered;
   };
 
-  // Работа с комментариями
-  const handleAddComment = async (taskId, text) => {
-    if (!text?.trim()) return;
-
-    const newComment = await addComment(taskId, {
-      text,
-      author: { _id: user._id, name: user.name }
-    });
-
-    setCommentsByTaskId(prev => ({
-      ...prev,
-      [taskId]: [...(prev[taskId] || []), newComment]
-    }));
-  };
-
-  const handleEditComment = async (taskId, commentId, newText) => {
-    const updated = await editComment(taskId, commentId, newText);
-    setCommentsByTaskId(prev => ({
-      ...prev,
-      [taskId]: prev[taskId].map(c => c._id === commentId ? updated : c)
-    }));
-  };
-
-  const handleDeleteComment = async (taskId, commentId) => {
-    await deleteComment(taskId, commentId);
-    setCommentsByTaskId(prev => ({
-      ...prev,
-      [taskId]: prev[taskId].filter(c => c._id !== commentId)
-    }));
-  };
-
   const total = tasks.length;
   const completedCount = tasks.filter((t) => t.completed).length;
   const activeCount = total - completedCount;
@@ -179,7 +148,13 @@ export default function TaskPage({ user: propUser }) {
 
       <ul className="task-list">
         {getFilteredTasks().map((task) => {
-          const canDelete = isOwner || (user?._id === task.author?._id && task.assignedTo?._id === user?._id);
+          const userId = user?._id || user?.id;
+          const taskAuthorId = task.author?._id || task.author;
+          const taskAssignedToId = task.assignedTo?._id || task.assignedTo;
+
+          const canDelete =
+            isOwner || (String(taskAuthorId) === String(userId) && String(taskAssignedToId) === String(userId));
+          console.log('user:', userId, 'author:', taskAuthorId, 'assignedTo:', taskAssignedToId, 'canDelete:', canDelete);
 
           return (
             <li key={task._id} className="task-item">
