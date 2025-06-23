@@ -1,12 +1,6 @@
-const API_URL = 'http://localhost:4000/api/tasks';
+import { getHeaders } from './helpers';
 
-function getHeaders() {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  };
-}
+const API_URL = 'http://localhost:4000/api/tasks';
 
 export async function fetchTasks({ from, to } = {}) {
   const params = new URLSearchParams();
@@ -54,14 +48,4 @@ export async function updateTask(id, updates) {
     body: JSON.stringify(updates)
   });
   return await res.json();
-}
-
-export async function addComment(taskId, comment) {
-  const res = await fetch(`/api/tasks/${taskId}/comments`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(comment)
-  });
-  if (!res.ok) throw new Error('Ошибка при добавлении комментария');
-  return res.json();
 }

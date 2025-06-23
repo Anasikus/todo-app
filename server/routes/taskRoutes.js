@@ -2,34 +2,37 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
 const User = require('../models/User');
+const Comment = require('../models/Comment');
 const auth = require('../middleware/auth');
+const commentsRouter = require('../routes/commentsRoutes');
 
 router.use(auth);
+router.use('/:taskId/comments', commentsRouter);
 
-// Получить все задачи
+// GET /api/tasks — задачи + комментарии
 router.get('/', async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId);
-    if (!user?.team) return res.status(403).json({ error: 'Вы не состоите в команде' });
+  const user = await User.findById(req.user.userId);
+  if (!user?.team) return res.status(403).json({ error: 'Не в команде' });
 
-    const { from, to } = req.query;
-    const filter = { team: user.team };
+  const tasks = await Task.find({ team: user.team })
+    .sort({ createdAt: -1 })
+    .populate('author', 'name email')
+    .populate('assignedTo', 'name email');
 
-    if (from || to) {
-      filter.createdAt = {};
-      if (from) filter.createdAt.$gte = new Date(from);
-      if (to) filter.createdAt.$lte = new Date(to);
-    }
+  // группировка комментариев
+  const comments = await Comment.find({ task: { $in: tasks.map(t => t._id) } })
+    .populate('author', 'name');
 
-    const tasks = await Task.find(filter)
-      .sort({ createdAt: -1 })
-      .populate('author', 'name email')
-      .populate('assignedTo', 'name email');
+  const byTask = {};
+  comments.forEach(c => {
+    byTask[c.task] = byTask[c.task] || [];
+    byTask[c.task].push(c);
+  });
 
-    res.json(tasks);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json(tasks.map(t => ({
+    ...t.toObject(),
+    comments: byTask[t._id] || []
+  })));
 });
 
 // Добавить задачу
@@ -101,30 +104,5 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Внутренняя ошибка сервера при удалении задачи' });
   }
 });
-
-// Добавление комментария
-router.post('/:taskId/comments', async (req, res) => {
-  const { taskId } = req.params;
-  const { text, author } = req.body;
-
-  try {
-    const task = await Task.findById(taskId);
-    if (!task) return res.status(404).json({ error: 'Задача не найдена' });
-
-    const comment = {
-      text,
-      author,
-      createdAt: new Date()
-    };
-
-    task.comments.push(comment);
-    await task.save();
-
-    res.status(201).json(comment);
-  } catch (err) {
-    res.status(500).json({ error: 'Ошибка при добавлении комментария' });
-  }
-});
-
 
 module.exports = router;

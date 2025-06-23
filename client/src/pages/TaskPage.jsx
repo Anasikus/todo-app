@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
+import { FiMessageSquare } from 'react-icons/fi';
 import { fetchMyTeam } from '../api/team';
 import { fetchTasks, addTask, deleteTask, updateTask } from '../api/tasks';
+import { fetchComments, addComment, editComment, deleteComment } from '../api/comments';
+import CommentModal from '../components/CommentModal';
 import '../styles/main.css';
 
 export default function TaskPage({ user: propUser }) {
   const [user, setUser] = useState(propUser || null);
   const [tasks, setTasks] = useState([]);
+  const [commentsByTaskId, setCommentsByTaskId] = useState({});
+  const [commentTextByTaskId, setCommentTextByTaskId] = useState({});
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+  const [activeTaskForComments, setActiveTaskForComments] = useState(null); // модальное окно
+
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -20,7 +29,6 @@ export default function TaskPage({ user: propUser }) {
   const isOwner = team?.owner === user?.id || team?.owner === user?._id;
 
   useEffect(() => {
-    // Загрузка пользователя из localStorage, если не пришёл через props
     if (!propUser) {
       const storedUser = JSON.parse(localStorage.getItem('user'));
       if (storedUser) setUser(storedUser);
@@ -28,7 +36,15 @@ export default function TaskPage({ user: propUser }) {
   }, [propUser]);
 
   useEffect(() => {
-    fetchTasks().then(setTasks);
+    fetchTasks().then(async (tasks) => {
+      setTasks(tasks);
+      const allComments = {};
+      for (const task of tasks) {
+        allComments[task._id] = await fetchComments(task._id);
+      }
+      setCommentsByTaskId(allComments);
+    });
+
     fetchMyTeam().then(team => {
       setTeam(team);
       setTeamMembers(team?.members || []);
@@ -83,6 +99,37 @@ export default function TaskPage({ user: propUser }) {
     return filtered;
   };
 
+  // Работа с комментариями
+  const handleAddComment = async (taskId, text) => {
+    if (!text?.trim()) return;
+
+    const newComment = await addComment(taskId, {
+      text,
+      author: { _id: user._id, name: user.name }
+    });
+
+    setCommentsByTaskId(prev => ({
+      ...prev,
+      [taskId]: [...(prev[taskId] || []), newComment]
+    }));
+  };
+
+  const handleEditComment = async (taskId, commentId, newText) => {
+    const updated = await editComment(taskId, commentId, newText);
+    setCommentsByTaskId(prev => ({
+      ...prev,
+      [taskId]: prev[taskId].map(c => c._id === commentId ? updated : c)
+    }));
+  };
+
+  const handleDeleteComment = async (taskId, commentId) => {
+    await deleteComment(taskId, commentId);
+    setCommentsByTaskId(prev => ({
+      ...prev,
+      [taskId]: prev[taskId].filter(c => c._id !== commentId)
+    }));
+  };
+
   const total = tasks.length;
   const completedCount = tasks.filter((t) => t.completed).length;
   const activeCount = total - completedCount;
@@ -101,12 +148,7 @@ export default function TaskPage({ user: propUser }) {
             ))}
           </select>
         ) : (
-          <input
-            type="text"
-            value={user?.name || ''}
-            disabled
-            style={{ backgroundColor: '#eee', cursor: 'not-allowed' }}
-          />
+          <input type="text" value={user?.name || ''} disabled />
         )}
         <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
         <input placeholder="Метки через запятую" value={tags} onChange={e => setTags(e.target.value)} />
@@ -137,11 +179,7 @@ export default function TaskPage({ user: propUser }) {
 
       <ul className="task-list">
         {getFilteredTasks().map((task) => {
-          const authorId = task.author?._id?.toString();
-          const assignedId = task.assignedTo?._id?.toString();
-          const userId = user?._id?.toString() || user?.id?.toString();
-
-          const canDelete = isOwner || (userId && authorId === userId && assignedId === userId);
+          const canDelete = isOwner || (user?._id === task.author?._id && task.assignedTo?._id === user?._id);
 
           return (
             <li key={task._id} className="task-item">
@@ -160,13 +198,30 @@ export default function TaskPage({ user: propUser }) {
                   <div>Метки: {task.labels?.join(', ') || '—'}</div>
                 </div>
               </div>
-              {canDelete && (
-                <button onClick={() => handleDelete(task._id)}>Удалить</button>
-              )}
+
+              <div className="task-actions">
+                <button
+                  className="icon-button"
+                  title="Комментарии"
+                  onClick={() => setActiveTaskForComments(task)}
+                >
+                  <FiMessageSquare />
+                </button>
+                {canDelete && (
+                  <button onClick={() => handleDelete(task._id)}>Удалить</button>
+                )}
+              </div>
             </li>
           );
         })}
       </ul>
+      {activeTaskForComments && user && (
+        <CommentModal
+          task={activeTaskForComments}
+          user={user}
+          onClose={() => setActiveTaskForComments(null)}
+        />
+      )}
     </div>
   );
 }
