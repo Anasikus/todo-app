@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FiMessageSquare } from 'react-icons/fi';
 import { fetchMyTeam } from '../api/team';
 import { fetchTasks, addTask, deleteTask, updateTask } from '../api/tasks';
-import { fetchComments, addComment, editComment, deleteComment } from '../api/comments';
+import { fetchComments } from '../api/comments'; // оставляем только нужную функцию
 import CommentModal from '../components/CommentModal';
 import '../styles/main.css';
 
@@ -10,10 +10,7 @@ export default function TaskPage({ user: propUser }) {
   const [user, setUser] = useState(propUser || null);
   const [tasks, setTasks] = useState([]);
   const [commentsByTaskId, setCommentsByTaskId] = useState({});
-  const [commentTextByTaskId, setCommentTextByTaskId] = useState({});
-  const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editingCommentText, setEditingCommentText] = useState('');
-  const [activeTaskForComments, setActiveTaskForComments] = useState(null); // модальное окно
+  const [activeTaskForComments, setActiveTaskForComments] = useState(null);
 
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -154,7 +151,6 @@ export default function TaskPage({ user: propUser }) {
 
           const canDelete =
             isOwner || (String(taskAuthorId) === String(userId) && String(taskAssignedToId) === String(userId));
-          console.log('user:', userId, 'author:', taskAuthorId, 'assignedTo:', taskAssignedToId, 'canDelete:', canDelete);
 
           return (
             <li key={task._id} className="task-item">
@@ -190,6 +186,7 @@ export default function TaskPage({ user: propUser }) {
           );
         })}
       </ul>
+
       {activeTaskForComments && user && (
         <CommentModal
           task={activeTaskForComments}

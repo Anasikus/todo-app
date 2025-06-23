@@ -13,10 +13,9 @@ export async function fetchTasks({ from, to } = {}) {
 
   const data = await res.json();
 
-  // если сервер вернул ошибку, возвращаем пустой массив
   if (!res.ok || !Array.isArray(data)) {
     console.error('Ошибка при загрузке задач:', data?.error || res.statusText);
-    return []; // ← предотвращает .filter is not a function
+    return [];
   }
 
   return data;
@@ -26,7 +25,7 @@ export async function addTask({ text, deadline, labels, assignedTo }) {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ text, deadline, labels, assignedTo }) // именно labels!
+    body: JSON.stringify({ text, deadline, labels, assignedTo })
   });
 
   const data = await res.json();

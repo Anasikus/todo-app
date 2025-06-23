@@ -4,38 +4,51 @@ const Task = require('../models/Task');
 const User = require('../models/User');
 const Comment = require('../models/Comment');
 const auth = require('../middleware/auth');
-const commentsRouter = require('../routes/commentsRoutes');
+const commentsRouter = require('./commentsRoutes');
 
 router.use(auth);
 router.use('/:taskId/comments', commentsRouter);
 
-// GET /api/tasks — задачи + комментарии
+// GET /api/tasks — получить список задач с фильтрацией по дате
 router.get('/', async (req, res) => {
-  const user = await User.findById(req.user.userId);
-  if (!user?.team) return res.status(403).json({ error: 'Не в команде' });
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user?.team) return res.status(403).json({ error: 'Не в команде' });
 
-  const tasks = await Task.find({ team: user.team })
-    .sort({ createdAt: -1 })
-    .populate('author', 'name email')
-    .populate('assignedTo', 'name email');
+    const { from, to } = req.query;
 
-  // группировка комментариев
-  const comments = await Comment.find({ task: { $in: tasks.map(t => t._id) } })
-    .populate('author', 'name');
+    const query = { team: user.team };
+    if (from || to) {
+      query.createdAt = {};
+      if (from) query.createdAt.$gte = new Date(from);
+      if (to) query.createdAt.$lte = new Date(to);
+    }
 
-  const byTask = {};
-  comments.forEach(c => {
-    byTask[c.task] = byTask[c.task] || [];
-    byTask[c.task].push(c);
-  });
+    const tasks = await Task.find(query)
+      .sort({ createdAt: -1 })
+      .populate('author', 'name email')
+      .populate('assignedTo', 'name email');
 
-  res.json(tasks.map(t => ({
-    ...t.toObject(),
-    comments: byTask[t._id] || []
-  })));
+    const comments = await Comment.find({ task: { $in: tasks.map(t => t._id) } })
+      .populate('author', 'name');
+
+    const byTask = {};
+    comments.forEach(c => {
+      byTask[c.task] = byTask[c.task] || [];
+      byTask[c.task].push(c);
+    });
+
+    res.json(tasks.map(t => ({
+      ...t.toObject(),
+      comments: byTask[t._id] || []
+    })));
+  } catch (e) {
+    console.error('Ошибка при получении задач:', e);
+    res.status(500).json({ error: 'Ошибка при получении задач' });
+  }
 });
 
-// Добавить задачу
+// POST /api/tasks — добавить задачу
 router.post('/', async (req, res) => {
   try {
     const { text, assignedTo, deadline, labels } = req.body;
@@ -71,7 +84,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Обновить задачу
+// PUT /api/tasks/:id — обновить задачу
 router.put('/:id', async (req, res) => {
   const updated = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true })
     .populate('author', 'name email')
@@ -80,7 +93,7 @@ router.put('/:id', async (req, res) => {
   res.json(updated);
 });
 
-// Удалить задачу
+// DELETE /api/tasks/:id — удалить задачу
 router.delete('/:id', async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
@@ -96,7 +109,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Вы не можете удалить эту задачу' });
     }
 
-    await Task.deleteOne({ _id: task._id }); // ← Заменено task.remove() на Task.deleteOne
+    await Task.deleteOne({ _id: task._id });
 
     res.json({ message: 'Задача удалена' });
   } catch (err) {
