@@ -4,7 +4,9 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const router = express.Router();
-const SECRET = 'todo_secret_key'; // Лучше вынести в .env
+const SECRET = process.env.JWT_SECRET;
+
+require('dotenv').config();
 
 // Регистрация
 router.post('/register', async (req, res) => {

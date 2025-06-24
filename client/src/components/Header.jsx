@@ -16,12 +16,12 @@ export default function Header({ onLogout, user }) {
     if (!user) return;
 
     fetchNotifications().then(setNotifications);
-    const token = localStorage.getItem('token');
-    console.log('🪪 Токен:', token);
+    // const token = localStorage.getItem('token');
+    // console.log('🪪 Токен:', token);
 
     socketRef.current = io('http://localhost:4000', {
       auth: { token: localStorage.getItem('token') },
-      transports: ['websocket']
+      withCredentials: true
     });
 
     socketRef.current.on('notification', async () => {
@@ -37,8 +37,12 @@ export default function Header({ onLogout, user }) {
         audio.play().catch(err => console.log('❌ Не удалось воспроизвести звук:', err));
       }
     });
-    socketRef.current.on("connect_error", (err) => {
-      console.error("❌ Socket.IO connection error:", err.message);
+    socketRef.current.on('connect', () => {
+      console.log('✅ Socket подключен!');
+    });
+
+    socketRef.current.on('connect_error', (err) => {
+      console.error('❌ Socket ошибка:', err.message);
     });
 
     const enableAudio = () => {
