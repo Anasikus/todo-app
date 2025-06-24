@@ -37,13 +37,13 @@ export default function Header({ onLogout, user }) {
         audio.play().catch(err => console.log('❌ Не удалось воспроизвести звук:', err));
       }
     });
-    socketRef.current.on('connect', () => {
-      console.log('✅ Socket подключен!');
-    });
+    // socketRef.current.on('connect', () => {
+    //   console.log('✅ Socket подключен!');
+    // });
 
-    socketRef.current.on('connect_error', (err) => {
-      console.error('❌ Socket ошибка:', err.message);
-    });
+    // socketRef.current.on('connect_error', (err) => {
+    //   console.error('❌ Socket ошибка:', err.message);
+    // });
 
     const enableAudio = () => {
       userInteractedRef.current = true;
