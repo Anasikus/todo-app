@@ -8,7 +8,7 @@ const multer = require('multer');
 const path = require('path');
 const Notification = require('../models/Notification');
 
-const storage = multer.diskStorage({ //*
+const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '..', 'uploads'));
   },
@@ -61,7 +61,6 @@ router.post('/', upload.single('file'), async (req, res) => {
     await comment.populate('author', 'name');
     const io = req.app.get('io');
 
-    // 🔔 Уведомление (если пользователь пишет НЕ сам себе)
     const assignedId = task.assignedTo?._id?.toString();
     if (assignedId && assignedId !== user._id.toString()) {
       const notif = new Notification({
@@ -72,6 +71,7 @@ router.post('/', upload.single('file'), async (req, res) => {
         fromUser: user._id
       });
       await notif.save();
+
       io.to(assignedId).emit('notification', {
         _id: notif._id,
         type: 'comment',

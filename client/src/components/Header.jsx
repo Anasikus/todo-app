@@ -111,17 +111,18 @@ export default function Header({ onLogout, user }) {
                         onClick={() => handleMarkAsRead(n._id)}
                         style={{ background: n.read ? '#eee' : '#fff', cursor: 'pointer' }}
                       >
-                        {n.type === 'comment' ? (
-                          <>
-                            💬 <strong>{n.fromUser?.name}</strong> написал комментарий к задаче:<br />
-                            <em>{n.comment?.text}</em>
-                          </>
-                        ) : (
-                          <>
-                            📌 Назначена новая задача:<br />
-                            <strong>{n.task?.text}</strong>
-                          </>
-                        )}
+                      {n.type === 'comment' ? (
+                        <>
+                          💬 <strong>{n.fromUser?.name}</strong> написал комментарий к задаче:<br />
+                          <strong>{n.task?.text}</strong><br />
+                          <em>{n.comment?.text}</em>
+                        </>
+                      ) : (
+                        <>
+                          📌 Назначена новая задача:<br />
+                          <strong>{n.task?.text}</strong>
+                        </>
+                      )}
                         <div className="notif-time">
                           {new Date(n.createdAt).toLocaleString('ru-RU')}
                         </div>
