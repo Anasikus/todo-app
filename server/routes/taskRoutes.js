@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Comment = require('../models/Comment');
 const auth = require('../middleware/auth');
 const commentsRouter = require('./commentsRoutes');
+const Notification = require('../models/Notification'); 
 
 router.use(auth);
 router.use('/:taskId/comments', commentsRouter);
@@ -53,6 +54,8 @@ router.post('/', async (req, res) => {
   try {
     const { text, assignedTo, deadline, labels } = req.body;
     const user = await User.findById(req.user.userId);
+    const io = req.app.get('io'); // ← доступ к socket.io
+
     if (!user?.team) return res.status(403).json({ error: 'Вы не состоите в команде' });
 
     const isOwner = user.role === 'owner';
@@ -76,6 +79,32 @@ router.post('/', async (req, res) => {
     const populated = await Task.findById(task._id)
       .populate('author', 'name email')
       .populate('assignedTo', 'name email');
+
+    // 🔔 Создание уведомления (если задача назначена не себе)
+    if (assignedTo && assignedTo !== user._id.toString()) {
+      const notif = new Notification({
+        user: assignedTo,
+        type: 'task',
+        task: task._id,
+        fromUser: user._id
+      });
+      await notif.save();
+      io.to(assignedTo).emit('notification', {
+        _id: notif._id,
+        type: 'task',
+        task: {
+          _id: task._id,
+          text: task.text
+        },
+        fromUser: {
+          _id: user._id,
+          name: user.name
+        },
+        createdAt: notif.createdAt,
+        read: false
+      });
+    }
+
 
     res.status(201).json(populated);
   } catch (err) {

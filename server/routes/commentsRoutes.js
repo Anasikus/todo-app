@@ -6,8 +6,9 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
+const Notification = require('../models/Notification');
 
-const storage = multer.diskStorage({ //*
+const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '..', 'uploads'));
   },
@@ -44,7 +45,7 @@ router.post('/', upload.single('file'), async (req, res) => {
 
   try {
     const user = await User.findById(req.user.userId);
-    const task = await Task.findById(req.params.taskId);
+    const task = await Task.findById(req.params.taskId).populate('assignedTo');
     if (!task) return res.status(404).json({ error: 'Задача не найдена' });
 
     const fileUrl = file ? `/uploads/${file.filename}` : undefined;
@@ -58,6 +59,39 @@ router.post('/', upload.single('file'), async (req, res) => {
 
     await comment.save();
     await comment.populate('author', 'name');
+    const io = req.app.get('io');
+
+    const assignedId = task.assignedTo?._id?.toString();
+    if (assignedId && assignedId !== user._id.toString()) {
+      const notif = new Notification({
+        user: assignedId,
+        type: 'comment',
+        task: task._id,
+        comment: comment._id,
+        fromUser: user._id
+      });
+      await notif.save();
+
+      io.to(assignedId).emit('notification', {
+        _id: notif._id,
+        type: 'comment',
+        task: {
+          _id: task._id,
+          text: task.text
+        },
+        comment: {
+          _id: comment._id,
+          text: comment.text
+        },
+        fromUser: {
+          _id: user._id,
+          name: user.name
+        },
+        createdAt: notif.createdAt,
+        read: false
+      });
+    }
+
     res.status(201).json(comment);
   } catch (e) {
     console.error('Ошибка при добавлении комментария:', e);

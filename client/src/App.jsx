@@ -30,7 +30,7 @@ export default function App() {
 
   return (
     <Router>
-      {token && <Header onLogout={handleLogout} />}
+      {token && <Header user={user} onLogout={handleLogout} />}
       <Routes>
         <Route path="/" element={<Navigate to={token ? "/tasks" : "/login"} />} />
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
