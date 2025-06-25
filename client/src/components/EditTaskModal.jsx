@@ -10,7 +10,6 @@ export default function EditTaskModal({ task, user, onSave, onClose }) {
 
   const modalRef = useRef(null);
     const isOwner = user?.role?.toLowerCase?.() === 'owner';
-    console.log('Role пользователя:', user?.role, 'isOwner:', isOwner);
 
     useEffect(() => {
     if (isOwner) {

@@ -14,6 +14,7 @@ export default function TaskPage({ user: propUser }) {
   const [commentsByTaskId, setCommentsByTaskId] = useState({});
   const [activeTaskForComments, setActiveTaskForComments] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [assignedUserFilter, setAssignedUserFilter] = useState('');
   const [search, setSearch] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -97,11 +98,24 @@ export default function TaskPage({ user: propUser }) {
 
   const getFilteredTasks = () => {
     let filtered = tasks;
-    if (filter === 'completed') filtered = filtered.filter((t) => t.completed);
-    else if (filter === 'active') filtered = filtered.filter((t) => !t.completed);
+
+    if (filter === 'completed') {
+      filtered = filtered.filter((t) => t.completed);
+    } else if (filter === 'active') {
+      filtered = filtered.filter((t) => !t.completed);
+    }
+
+    if (assignedUserFilter) {
+      filtered = filtered.filter(t => {
+        const assignedId = t.assignedTo?._id || t.assignedTo;
+        return assignedId === assignedUserFilter;
+      });
+    }
+
     if (search.trim()) {
       filtered = filtered.filter((t) => t.text.toLowerCase().includes(search.toLowerCase()));
     }
+
     return filtered;
   };
 
@@ -131,6 +145,12 @@ export default function TaskPage({ user: propUser }) {
       </form>
 
       <div className="filters">
+        <select value={assignedUserFilter} onChange={e => setAssignedUserFilter(e.target.value)}>
+            <option value="">Все исполнители</option>
+            {teamMembers.map(member => (
+            <option key={member._id} value={member._id}>{member.name}</option>
+          ))}
+        </select>
         <button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>Все</button>
         <button className={filter === 'active' ? 'active' : ''} onClick={() => setFilter('active')}>Активные</button>
         <button className={filter === 'completed' ? 'active' : ''} onClick={() => setFilter('completed')}>Выполненные</button>
@@ -158,8 +178,10 @@ export default function TaskPage({ user: propUser }) {
           const taskAuthorId = task.author?._id || task.author;
           const taskAssignedToId = task.assignedTo?._id || task.assignedTo;
 
-          const canEditOrDelete =
-            isOwner || String(taskAuthorId) === String(userId);
+          const isTaskAuthor = String(taskAuthorId) === String(userId);
+          const isTaskExecutor = String(taskAssignedToId) === String(userId);
+
+          const canEditOrDelete = isOwner || (isTaskAuthor && isTaskExecutor);
 
           return (
             <li key={task._id} className="task-item">
@@ -191,9 +213,9 @@ export default function TaskPage({ user: propUser }) {
                   <>
                     <button onClick={() => setEditingTask(task)}>Редактировать</button>
                     <button onClick={() => handleDelete(task._id)}>Удалить</button>
-                    <button onClick={() => setActiveTaskForHistory(task._id)}>История</button>
                   </>
                 )}
+                <button onClick={() => setActiveTaskForHistory(task._id)}>История</button>
               </div>
             </li>
           );

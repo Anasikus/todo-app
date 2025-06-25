@@ -16,7 +16,7 @@ router.post('/register', async (req, res) => {
     if (candidate) return res.status(400).json({ error: 'Email уже зарегистрирован' });
 
     const hash = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hash, role: role || 'user' }); // по умолчанию роль 'user'
+    const user = new User({ name, email, password: hash, role: role || 'member' }); // по умолчанию роль 'user'
     await user.save();
     res.status(201).json({ message: 'Пользователь создан' });
   } catch (err) {
