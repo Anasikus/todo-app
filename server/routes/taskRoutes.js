@@ -5,20 +5,21 @@ const User = require('../models/User');
 const Comment = require('../models/Comment');
 const auth = require('../middleware/auth');
 const commentsRouter = require('./commentsRoutes');
-const Notification = require('../models/Notification'); 
+const Notification = require('../models/Notification');
+const TaskHistory = require('../models/TaskHistory');
 
 router.use(auth);
 router.use('/:taskId/comments', commentsRouter);
 
-// GET /api/tasks — получить список задач с фильтрацией по дате
+// GET /api/tasks
 router.get('/', async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
     if (!user?.team) return res.status(403).json({ error: 'Не в команде' });
 
     const { from, to } = req.query;
-
     const query = { team: user.team };
+
     if (from || to) {
       query.createdAt = {};
       if (from) query.createdAt.$gte = new Date(from);
@@ -49,12 +50,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/tasks — добавить задачу
+// POST /api/tasks
 router.post('/', async (req, res) => {
   try {
     const { text, assignedTo, deadline, labels } = req.body;
     const user = await User.findById(req.user.userId);
-    const io = req.app.get('io'); // ← доступ к socket.io
+    const io = req.app.get('io');
 
     if (!user?.team) return res.status(403).json({ error: 'Вы не состоите в команде' });
 
@@ -80,7 +81,6 @@ router.post('/', async (req, res) => {
       .populate('author', 'name email')
       .populate('assignedTo', 'name email');
 
-    // 🔔 Создание уведомления (если задача назначена не себе)
     if (assignedTo && assignedTo !== user._id.toString()) {
       const notif = new Notification({
         user: assignedTo,
@@ -105,7 +105,6 @@ router.post('/', async (req, res) => {
       });
     }
 
-
     res.status(201).json(populated);
   } catch (err) {
     console.error(err);
@@ -113,16 +112,96 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/tasks/:id — обновить задачу
+// PUT /api/tasks/:id — обновление задачи с проверкой прав и историей
 router.put('/:id', async (req, res) => {
-  const updated = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true })
-    .populate('author', 'name email')
-    .populate('assignedTo', 'name email');
+  try {
+    const task = await Task.findById(req.params.id);
+    const user = await User.findById(req.user.userId);
+    const io = req.app.get('io');
 
-  res.json(updated);
+    if (!task) return res.status(404).json({ error: 'Задача не найдена' });
+
+    const isOwner = user.role === 'owner';
+    const isAuthor = task.author.toString() === user._id.toString();
+
+    if (!isOwner && !isAuthor) {
+      return res.status(403).json({ error: 'Вы не можете редактировать эту задачу' });
+    }
+
+    const fieldsToTrack = ['text', 'assignedTo', 'deadline', 'labels', 'completed'];
+    const updates = req.body;
+
+    for (const field of fieldsToTrack) {
+      let oldValue = task[field];
+      let newValue = updates[field];
+
+      const isDifferent = JSON.stringify(oldValue) !== JSON.stringify(newValue);
+
+      if (newValue !== undefined && isDifferent) {
+        // 🔁 Преобразуем assignedTo в имя пользователя
+        if (field === 'assignedTo') {
+          const oldUser = await User.findById(oldValue);
+          const newUser = await User.findById(newValue);
+
+          oldValue = oldUser ? { name: oldUser.name } : oldValue;
+          newValue = newUser ? { name: newUser.name } : newValue;
+        }
+
+        await TaskHistory.create({
+          task: task._id,
+          user: user._id,
+          action: 'updated',
+          field,
+          oldValue,
+          newValue
+        });
+      }
+    }
+
+    Object.assign(task, updates);
+    await task.save();
+
+    const updated = await Task.findById(task._id)
+      .populate('author', 'name email')
+      .populate('assignedTo', 'name email');
+
+    // 🔔 Отправка уведомления, если задача переназначена
+    if (
+      updates.assignedTo &&
+      updates.assignedTo.toString() !== user._id.toString() &&
+      updates.assignedTo.toString() !== task.assignedTo?.toString()
+    ) {
+      const notif = new Notification({
+        user: updates.assignedTo,
+        type: 'task',
+        task: task._id,
+        fromUser: user._id
+      });
+      await notif.save();
+      io.to(updates.assignedTo).emit('notification', {
+        _id: notif._id,
+        type: 'task',
+        task: {
+          _id: task._id,
+          text: task.text
+        },
+        fromUser: {
+          _id: user._id,
+          name: user.name
+        },
+        createdAt: notif.createdAt,
+        read: false
+      });
+    }
+
+    res.json(updated);
+  } catch (e) {
+    console.error('Ошибка при обновлении задачи:', e);
+    res.status(500).json({ error: 'Ошибка при обновлении задачи' });
+  }
 });
 
-// DELETE /api/tasks/:id — удалить задачу
+// DELETE /api/tasks/:id
 router.delete('/:id', async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
@@ -144,6 +223,19 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error('Ошибка при удалении задачи:', err);
     res.status(500).json({ error: 'Внутренняя ошибка сервера при удалении задачи' });
+  }
+});
+
+// GET /api/tasks/:id/history
+router.get('/:id/history', async (req, res) => {
+  try {
+    const history = await TaskHistory.find({ task: req.params.id })
+      .sort({ createdAt: -1 })
+      .populate('user', 'name');
+    res.json(history);
+  } catch (err) {
+    console.error('Ошибка при получении истории задачи:', err);
+    res.status(500).json({ error: 'Не удалось загрузить историю задачи' });
   }
 });
 

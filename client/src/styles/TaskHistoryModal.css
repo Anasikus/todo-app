@@ -1,49 +1,117 @@
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  z-index: 1000;
+  padding: 1rem;
+  box-sizing: border-box;
 }
 
-.modal-content {
-  background: white;
-  padding: 20px 25px;
+.modal {
+  background: #fff;
   border-radius: 8px;
-  width: 400px;
-  max-height: 80vh;
+  width: 90%;
+  max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem 2rem;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.history-list {
-  list-style: none;
-  padding: 0;
-  margin-top: 10px;
+.modal.large {
+  max-width: 1200px;
 }
 
-.history-list li {
-  margin-bottom: 15px;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
-}
-
-.timestamp {
-  font-size: 0.8em;
-  color: #888;
+.modal h3 {
+  margin: 0 0 1rem;
+  font-size: 1.6rem;
+  text-align: center;
+  color: #222;
 }
 
 .close-btn {
-  margin-top: 10px;
-  background: #444;
-  color: white;
-  padding: 6px 12px;
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: transparent;
   border: none;
-  border-radius: 4px;
+  font-size: 1.6rem;
   cursor: pointer;
+  color: #666;
+  transition: color 0.2s ease;
+}
+
+.close-btn:hover {
+  color: #000;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.history-table th,
+.history-table td {
+  border: 1px solid #ddd;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.history-table th {
+  background-color: #f0f0f0;
+  font-weight: 600;
+  color: #333;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.history-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.old {
+  color: #b03030;
+  font-weight: 600;
+}
+
+.new {
+  color: #2a7a2a;
+  font-weight: 600;
+}
+
+.timestamp {
+  font-size: 0.85rem;
+  color: #555;
+  font-style: italic;
+}
+
+.no-history {
+  text-align: center;
+  color: #777;
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .modal {
+    padding: 1rem;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+  }
 }

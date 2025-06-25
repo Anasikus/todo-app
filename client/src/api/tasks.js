@@ -48,3 +48,15 @@ export async function updateTask(id, updates) {
   });
   return await res.json();
 }
+
+export async function fetchTaskHistory(taskId) {
+  const res = await fetch(`http://localhost:4000/api/tasks/${taskId}/history`, {
+    headers: getHeaders()
+  });
+  const data = await res.json();
+  if (!res.ok || !Array.isArray(data)) {
+    console.error('Ошибка при получении истории:', data?.error || res.statusText);
+    return [];
+  }
+  return data;
+}
