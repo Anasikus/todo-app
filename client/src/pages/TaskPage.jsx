@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { FiMessageSquare } from 'react-icons/fi';
 import { fetchMyTeam } from '../api/team';
 import { fetchTasks, addTask, deleteTask, updateTask } from '../api/tasks';
-import { fetchComments } from '../api/comments'; // оставляем только нужную функцию
+import { fetchComments } from '../api/comments';
 import CommentModal from '../components/CommentModal';
+import TaskHistoryModal from '../components/TaskHistoryModal';
+import EditTaskModal from '../components/EditTaskModal';
 import '../styles/main.css';
 
 export default function TaskPage({ user: propUser }) {
@@ -11,7 +13,6 @@ export default function TaskPage({ user: propUser }) {
   const [tasks, setTasks] = useState([]);
   const [commentsByTaskId, setCommentsByTaskId] = useState({});
   const [activeTaskForComments, setActiveTaskForComments] = useState(null);
-
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -22,6 +23,8 @@ export default function TaskPage({ user: propUser }) {
   const [tags, setTags] = useState('');
   const [team, setTeam] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [activeTaskForHistory, setActiveTaskForHistory] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
 
   const isOwner = team?.owner === user?.id || team?.owner === user?._id;
 
@@ -84,6 +87,12 @@ export default function TaskPage({ user: propUser }) {
   const handleDateFilter = async () => {
     const filtered = await fetchTasks({ from: fromDate, to: toDate });
     setTasks(filtered);
+  };
+
+  const handleSaveEdit = async (updates) => {
+    const updated = await updateTask(editingTask._id, updates);
+    setTasks(tasks.map(t => t._id === updated._id ? updated : t));
+    setEditingTask(null);
   };
 
   const getFilteredTasks = () => {
@@ -149,8 +158,8 @@ export default function TaskPage({ user: propUser }) {
           const taskAuthorId = task.author?._id || task.author;
           const taskAssignedToId = task.assignedTo?._id || task.assignedTo;
 
-          const canDelete =
-            isOwner || (String(taskAuthorId) === String(userId) && String(taskAssignedToId) === String(userId));
+          const canEditOrDelete =
+            isOwner || String(taskAuthorId) === String(userId);
 
           return (
             <li key={task._id} className="task-item">
@@ -178,8 +187,12 @@ export default function TaskPage({ user: propUser }) {
                 >
                   <FiMessageSquare />
                 </button>
-                {canDelete && (
-                  <button onClick={() => handleDelete(task._id)}>Удалить</button>
+                {canEditOrDelete && (
+                  <>
+                    <button onClick={() => setEditingTask(task)}>Редактировать</button>
+                    <button onClick={() => handleDelete(task._id)}>Удалить</button>
+                    <button onClick={() => setActiveTaskForHistory(task._id)}>История</button>
+                  </>
                 )}
               </div>
             </li>
@@ -192,6 +205,20 @@ export default function TaskPage({ user: propUser }) {
           task={activeTaskForComments}
           user={user}
           onClose={() => setActiveTaskForComments(null)}
+        />
+      )}
+      {activeTaskForHistory && (
+        <TaskHistoryModal
+          taskId={activeTaskForHistory}
+          onClose={() => setActiveTaskForHistory(null)}
+        />
+      )}
+      {editingTask && (
+        <EditTaskModal
+          task={editingTask}
+          user={user}
+          onSave={handleSaveEdit}
+          onClose={() => setEditingTask(null)}
         />
       )}
     </div>
