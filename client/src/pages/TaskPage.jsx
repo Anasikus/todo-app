@@ -158,8 +158,11 @@ export default function TaskPage({ user: propUser }) {
           const taskAuthorId = task.author?._id || task.author;
           const taskAssignedToId = task.assignedTo?._id || task.assignedTo;
 
-          const canEditOrDelete =
-            isOwner || String(taskAuthorId) === String(userId);
+          const isTaskAuthor = String(taskAuthorId) === String(userId);
+          const isTaskExecutor = String(taskAssignedToId) === String(userId);
+
+          const canEditOrDelete = isOwner || (isTaskAuthor && isTaskExecutor);
+
 
           return (
             <li key={task._id} className="task-item">
@@ -191,9 +194,10 @@ export default function TaskPage({ user: propUser }) {
                   <>
                     <button onClick={() => setEditingTask(task)}>Редактировать</button>
                     <button onClick={() => handleDelete(task._id)}>Удалить</button>
-                    <button onClick={() => setActiveTaskForHistory(task._id)}>История</button>
+                    
                   </>
                 )}
+                <button onClick={() => setActiveTaskForHistory(task._id)}>История</button>
               </div>
             </li>
           );
