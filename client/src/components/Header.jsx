@@ -82,6 +82,9 @@ export default function Header({ onLogout, user }) {
         <nav className="nav-links">
           <Link to="/tasks">Задачи</Link>
           <Link to="/team">Команда</Link>
+          <Link to="/analytics">Аналитика</Link>
+          <Link to="/calendar">Календарь</Link>
+
         </nav>
 
         <div className="header-right">
