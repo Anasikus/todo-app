@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import {
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  isSameDay,
-  isPast
+  format, parse, startOfWeek, getDay, isSameDay, isPast
 } from 'date-fns';
 import ru from 'date-fns/locale/ru';
 import { fetchTasks, addTask, updateTask } from '../api/tasks';
@@ -25,6 +21,7 @@ const localizer = dateFnsLocalizer({
 });
 
 export default function CalendarPage({ user: propUser }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState(propUser || null);
   const [allTasks, setAllTasks] = useState([]);
   const [events, setEvents] = useState([]);
@@ -34,21 +31,33 @@ export default function CalendarPage({ user: propUser }) {
   const [editingTask, setEditingTask] = useState(null);
 
   useEffect(() => {
-    if (!propUser) {
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      if (storedUser) setUser(storedUser);
+    const storedUser = propUser || JSON.parse(localStorage.getItem('user'));
+    if (storedUser) {
+      setUser(storedUser);
+    } else {
+      navigate('/login');
     }
-  }, [propUser]);
+  }, [propUser, navigate]);
+
+  const loadTasks = async () => {
+    try {
+      const tasks = await fetchTasks();
+      setAllTasks(tasks);
+    } catch (err) {
+      console.error('Ошибка при загрузке задач', err);
+    }
+  };
 
   useEffect(() => {
-    fetchTasks().then(setAllTasks);
+    loadTasks();
   }, []);
 
   useEffect(() => {
     const filteredTasks = onlyMine
       ? allTasks.filter(
           t =>
-            String(t.assignedTo?._id || t.assignedTo) === String(user?._id || user?.id)
+            String(t.assignedTo?._id || t.assignedTo) ===
+            String(user?._id || user?.id)
         )
       : allTasks;
 
@@ -68,8 +77,8 @@ export default function CalendarPage({ user: propUser }) {
 
         return {
           title: t.text,
-          start: deadline,
-          end: deadline,
+          start: new Date(deadline.setHours(12)),
+          end: new Date(deadline.setHours(12)),
           task: t,
           allDay: true,
           color
@@ -147,7 +156,9 @@ export default function CalendarPage({ user: propUser }) {
           <select
             value={currentDate.getFullYear()}
             onChange={e =>
-              setCurrentDate(new Date(Number(e.target.value), currentDate.getMonth(), 1))
+              setCurrentDate(
+                new Date(Number(e.target.value), currentDate.getMonth(), 1)
+              )
             }
           >
             {yearOptions}
@@ -161,15 +172,26 @@ export default function CalendarPage({ user: propUser }) {
         events={events}
         startAccessor="start"
         endAccessor="end"
-        style={{ height: '100%', backgroundColor: '#f0f2f5', padding: 10, borderRadius: 10 }}
+        style={{
+          height: '100%',
+          backgroundColor: '#f0f2f5',
+          padding: 10,
+          borderRadius: 10
+        }}
         date={currentDate}
         onNavigate={setCurrentDate}
         onSelectEvent={e => setSelectedTask(e.task)}
         onSelectSlot={({ start }) => {
+          const normalizedStart = new Date(
+            start.getFullYear(),
+            start.getMonth(),
+            start.getDate(),
+            12
+          );
           setEditingTask({
             text: '',
             assignedTo: user?._id || user?.id || '',
-            deadline: start.toISOString(),
+            deadline: normalizedStart.toISOString(),
             labels: [],
             isNew: true
           });
@@ -202,6 +224,16 @@ export default function CalendarPage({ user: propUser }) {
           task={selectedTask}
           user={user}
           onClose={() => setSelectedTask(null)}
+          onTaskUpdated={(updatedTask) => {
+            setAllTasks(prev =>
+              prev.map(t => (t._id === updatedTask._id ? updatedTask : t))
+            );
+            setSelectedTask(updatedTask);
+          }}
+          onTaskDeleted={() => {
+            setAllTasks(prev => prev.filter(t => t._id !== selectedTask._id));
+            setSelectedTask(null);
+          }}
         />
       )}
 
@@ -210,28 +242,27 @@ export default function CalendarPage({ user: propUser }) {
           task={editingTask}
           user={user}
           onClose={() => setEditingTask(null)}
-          onSave={async (newTaskData) => {
+          onSave={async newTaskData => {
             try {
               if (editingTask.isNew) {
                 const createdTask = await addTask(newTaskData);
                 setAllTasks(prev => [createdTask, ...prev]);
               } else {
                 const updatedTask = await updateTask(editingTask._id, newTaskData);
-
                 setAllTasks(prev =>
-                  prev.map(t => (t._id === updatedTask._id ? updatedTask : t))
+                  prev.map(t =>
+                    t._id === updatedTask._id ? updatedTask : t
+                  )
                 );
-
-                // Обновляем выбранную задачу, если она открыта
                 if (selectedTask && selectedTask._id === updatedTask._id) {
                   setSelectedTask(updatedTask);
                 }
               }
-              setEditingTask(null);
             } catch (err) {
               alert('Ошибка при сохранении задачи');
               console.error(err);
             }
+            setEditingTask(null);
           }}
         />
       )}

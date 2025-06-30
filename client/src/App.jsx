@@ -37,8 +37,6 @@ export default function App() {
         <Route path="/" element={<Navigate to={token ? "/tasks" : "/login"} />} />
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
         <Route
           path="/tasks"
           element={
@@ -55,7 +53,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route path="*" element={<h2 style={{ padding: '20px' }}>404 — Страница не найдена</h2>} />
       </Routes>
     </Router>
