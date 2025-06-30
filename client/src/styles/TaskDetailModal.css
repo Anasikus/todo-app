@@ -1,0 +1,49 @@
+.modal-overlay {
+  position: fixed; top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.5);
+  display:flex; justify-content:center; align-items:center;
+  z-index:1000;
+}
+.modal {
+  background:#fff; border-radius:8px; padding:1rem 2rem;
+  position:relative; max-width:500px; width:90%;
+  box-shadow:0 4px 16px rgba(0,0,0,0.2);
+}
+.close-btn {
+  position:absolute; top:8px; right:12px; font-size:1.2rem;
+  background:transparent; border:none; cursor:pointer;
+}
+.modal p {
+  margin:0.5rem 0;
+}
+.rbc-today {
+  background-color: #e3f2fd !important;
+}
+.calendar-page {
+  height: 85vh;
+  padding: 20px;
+  background: linear-gradient(to bottom right, #f3f4f6, #e0f7fa);
+  border-radius: 8px;
+}
+
+.calendar-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.calendar-selects {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.rbc-header {
+  text-transform: none;
+  font-weight: bold;
+  font-size: 15px;
+  color: #333;
+}

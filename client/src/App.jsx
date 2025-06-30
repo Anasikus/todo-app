@@ -7,6 +7,8 @@ import Header from './components/Header';
 import TaskPage from './pages/TaskPage';
 import TeamPage from './pages/TeamPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import AnalyticsPage from './pages/AnalyticsPage';
+import CalendarPage from './pages/CalendarPage';
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -35,7 +37,8 @@ export default function App() {
         <Route path="/" element={<Navigate to={token ? "/tasks" : "/login"} />} />
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
         <Route path="/register" element={<RegisterPage />} />
-
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route
           path="/tasks"
           element={
